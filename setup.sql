@@ -4,13 +4,13 @@
 CREATE OR REPLACE FUNCTION create_or_update_role_with_password(rolename TEXT, rolepassword TEXT) RETURNS VOID AS
 $$
 BEGIN
-	IF NOT EXISTS (SELECT * FROM pg_roles WHERE rolname = rolename) THEN
-		EXECUTE format('CREATE USER %I WITH PASSWORD %L', rolename, rolepassword);
+  IF NOT EXISTS (SELECT * FROM pg_roles WHERE rolname = rolename) THEN
+    EXECUTE format('CREATE USER %I WITH PASSWORD ''%I''', rolename, rolepassword);
     RAISE NOTICE 'CREATE USER %', rolename;
-	ELSE
-		EXECUTE format('ALTER USER %I WITH PASSWORD %L', rolename, rolepassword);
+  ELSE
+    EXECUTE format('ALTER USER %I WITH PASSWORD ''%I''', rolename, rolepassword);
     RAISE NOTICE 'ALTER USER %', rolename;
-	END IF;
+  END IF;
 END;
 $$
 LANGUAGE plpgsql;
@@ -56,11 +56,9 @@ BEGIN
 
   EXECUTE 'grant all privileges on database PG_DATABASE to ' || quote_ident(appadmin);
   EXECUTE 'grant all on all tables in schema public to ' || quote_ident(appadmin);
-  EXECUTE 'grant "nicweb-admin" to ' || quote_ident(appadmin);
 
   EXECUTE 'grant all privileges on database PG_DATABASE to ' || quote_ident(appuser);
   EXECUTE 'grant all on all tables in schema public to ' || quote_ident(appuser);
-  EXECUTE 'grant "nicweb-user" to ' || quote_ident(appuser);
 
 END
 $$;
@@ -71,38 +69,38 @@ CREATE TYPE table_count AS (table_name TEXT, num_rows INTEGER);
 CREATE OR REPLACE FUNCTION count_em_all () RETURNS SETOF table_count
 AS '
 DECLARE
-    the_count RECORD;
-    t_name RECORD;
-    r table_count%ROWTYPE;
+  the_count RECORD;
+  t_name RECORD;
+  r table_count%ROWTYPE;
 BEGIN
-    FOR t_name IN
-        SELECT c.relname
-        FROM
-            pg_catalog.pg_class c
-                LEFT JOIN
-            pg_namespace n
-                ON
-            n.oid = c.relnamespace
-        WHERE
-            c.relkind = ''r''
-                AND
-            n.nspname = ''public''
-        ORDER BY 1
-    LOOP
-      BEGIN
-        -- The next 3 lines are a hack according to the author.
-        FOR the_count IN EXECUTE ''SELECT COUNT(*) AS "count" FROM '' || t_name.relname
-        LOOP
-        END LOOP;
-        r.table_name := t_name.relname;
-        r.num_rows := the_count.count;
-        RETURN NEXT r;
+  FOR t_name IN
+  SELECT c.relname
+  FROM
+    pg_catalog.pg_class c
+    LEFT JOIN
+    pg_namespace n
+      ON
+        n.oid = c.relnamespace
+  WHERE
+    c.relkind = ''r''
+    AND
+    n.nspname = ''public''
+  ORDER BY 1
+  LOOP
+    BEGIN
+      -- The next 3 lines are a hack according to the author.
+      FOR the_count IN EXECUTE ''SELECT COUNT(*) AS "count" FROM '' || t_name.relname
+      LOOP
+      END LOOP;
+      r.table_name := t_name.relname;
+      r.num_rows := the_count.count;
+      RETURN NEXT r;
       EXCEPTION
       WHEN others THEN
         CONTINUE;
-      END;
+    END;
   END LOOP;
-    RETURN;
+  RETURN;
 END;
 ' LANGUAGE plpgsql;
 COMMENT ON FUNCTION count_em_all () IS 'Spits out all tables in the public schema and the exact row counts for each.';
