@@ -5,11 +5,11 @@ CREATE OR REPLACE FUNCTION create_or_update_role_with_password(rolename TEXT, ro
 $$
 BEGIN
   IF NOT EXISTS (SELECT * FROM pg_roles WHERE rolname = rolename) THEN
-    EXECUTE format('CREATE USER %I WITH PASSWORD ''%I''', rolename, rolepassword);
-    RAISE NOTICE 'CREATE USER %', rolename;
+    EXECUTE 'CREATE USER "' || rolename || '" WITH PASSWORD ''' || rolepassword || '''';
+    RAISE NOTICE 'CREATE USER "%" WITH PASSWORD ''%''', rolename, rolepassword;
   ELSE
-    EXECUTE format('ALTER USER %I WITH PASSWORD ''%I''', rolename, rolepassword);
-    RAISE NOTICE 'ALTER USER %', rolename;
+    EXECUTE 'ALTER USER "' || rolename || '" WITH PASSWORD ''' || rolepassword || '''';
+    RAISE NOTICE 'ALTER USER "%" WITH PASSWORD ''%''', rolename, rolepassword;
   END IF;
 END;
 $$
